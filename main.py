@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sn
 import os
+import sys
 import pandas as pd
 import cv2
 
@@ -14,7 +15,9 @@ from keras.callbacks import ReduceLROnPlateau, EarlyStopping
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 from tensorflow import keras
-
+import tensorflow_datasets.public_api as tfds
+from keras.datasets import mnist
+import argparse
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 (X_train, y_train), (X_test, y_test) = keras.datasets.mnist.load_data()
@@ -234,6 +237,7 @@ mergedOut = Add()([out1,out2])
 oneInputModel = Model(commonInput,mergedOut)
 '''
 
+'''
 iter = 0
 train2_y = []
 target = 1
@@ -241,11 +245,16 @@ for iter1 in range(297960):
     for iter2 in range(26):
         iter += 1
         if train_yOHE[iter1, iter2] == target:
-            train2_y.append(10 + iter%26)
+            train2_y.append(chr(65 + iter%26))
 
 train1_y = []
 for iter1 in range(60000):
-        train1_y.append(y_train[iter1])
+        train1_y.append(str(y_train[iter1]))
+
+print(len(train2_y))
+print(type(train2_y[0]))
+print(len(train1_y))
+print(type(train1_y[0]))
 
 
 #train_yOHE = np.reshape(train_yOHE, (-1,1))
@@ -254,7 +263,8 @@ labels = train1_y + train2_y
 
 inputA = Input(shape=(28,28))
 inputB = Input(shape=(28,28))
-
+print(len(labels))
+print(type(labels[0]))
 # the first branch operates on the first input
 x = Dense(1000, activation="relu")(inputA)
 x = Dense(100, activation="relu")(x)
@@ -277,9 +287,166 @@ z = Dense(1, activation="linear")(z)
 
 # our model will accept the inputs of the two branches and
 # then output a single value
-model_c = Model(inputs=[x.input, y.input], outputs=z)
-model_c.compile(optimizer = 'Adam', loss='categorical_crossentropy', metrics=['accuracy'])
-model_c.fit([X_train_flattened, train_X], labels, epochs=10,
-            validation_split=0.15, callbacks=[EarlyStopping(monitor='val_loss', patience=5)])
 
-print("x")
+model_c = Model(inputs=[x.input, y.input], outputs=z)
+
+model_c.compile(optimizer = 'Adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+
+print(X_train.shape)
+print(type(X_train[0]))
+print(train_X.shape)
+print(type(train_X[0]))
+'''
+'''
+model_c.fit([X_train, train_X], labels, epochs=1,
+            validation_split=0.15, callbacks=[EarlyStopping(monitor='val_loss', patience=5)])
+'''
+
+
+'''
+(img_train, img_test, img_validation), metadata = tfds.as_numpy(tfds.load(
+    'binary_alpha_digits',
+    split=['train[:80%]', 'train[80%:90%]', 'train[90%:]'],
+    with_info=True,
+    as_supervised=True,
+))
+'''
+#print(img_train.shape)
+#print(label_train.shape)
+#print(img_train[0].shape)
+#print(label_train.shape)
+#print(img_train[0])
+#print(label_train[0])
+
+'''
+model_lc = keras.Sequential([keras.layers.Dense(1000, input_shape=(28, 28, 1), activation='relu'),
+                            keras.layers.Dense(100, activation='sigmoid'),
+                            keras.layers.Dense(10, activation='sigmoid')])
+
+model_lc.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+model_lc.fit(img_train, label_train, epochs=1)
+
+model_lc.evaluate(img_test, label_test)
+
+model_lc.save('CNN_lc_1.model')
+
+y_predicted = model_lc.predict(label_test)
+y_predicted_labels = [np.argmax(i) for i in y_predicted]
+cm = tf.math.confusion_matrix(labels=y_test, predictions=y_predicted_labels)
+
+plt.figure(figsize = (10,7))
+sn.heatmap(cm, annot=True, fmt='d')
+plt.xlabel('Predicted')
+plt.ylabel('Truth')
+plt.show()
+
+
+model_lc = Sequential()
+model_lc.add(Conv2D(filters=32, kernel_size=(3, 3), activation='relu', input_shape=(20, 16, 1)))
+model_lc.add(MaxPool2D(pool_size=(2, 2), strides=2))
+model_lc.add(Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding = 'same'))
+model_lc.add(MaxPool2D(pool_size=(2, 2), strides=2))
+model_lc.add(Conv2D(filters=128, kernel_size=(3, 3), activation='relu', padding = 'valid'))
+model_lc.add(MaxPool2D(pool_size=(2, 2), strides=2))
+model_lc.add(Flatten())
+model_lc.add(Dense(64, activation ="relu"))
+model_lc.add(Dense(128, activation ="relu"))
+model_lc.add(Dense(26, activation ="softmax"))
+model_lc.compile(optimizer = 'Adam', loss='categorical_crossentropy', metrics=['accuracy'])
+history = model_lc.fit(img_train, epochs=1,  validation_data = img_test)
+model_lc.summary()
+
+model_lc.save('CNN_lc_1.model')
+
+print("The validation accuracy is :", history.history['val_accuracy'])
+print("The training accuracy is :", history.history['accuracy'])
+print("The validation loss is :", history.history['val_loss'])
+print("The training loss is :", history.history['loss'])
+
+y_predicted = model_lc.predict(img_test)
+y_predicted_labels = [np.argmax(i) for i in y_predicted]
+cm = tf.math.confusion_matrix(labels=img_test,predictions=y_predicted_labels)
+
+plt.figure(figsize = (10,7))
+#df_col=(cm-cm.mean())/cm.std()
+sn.heatmap(cm, annot=True, fmt='d')
+plt.xlabel('Predicted')
+plt.ylabel('Truth')
+plt.show()
+'''
+
+# final try
+
+def load_az_dataset(dataset_path):
+    # initialize the list of data and labels
+    data = []
+    labels = []
+
+    # loop over the rows of the A-Z handwritten digit dataset
+    for row in open(dataset_path):
+        # parse the label and image from the row
+        row = row.split(",")
+        label = int(row[0])
+        image = np.array([int(x) for x in row[1:]], dtype="uint8")
+
+        # images are represented as single channel (grayscale) images
+        # that are 28x28=784 pixels -- we need to take this flattened
+        # 784-d list of numbers and reshape them into a 28x28 matrix
+        image = image.reshape((28, 28))
+
+        # update the list of data and labels
+        data.append(image)
+        labels.append(label)
+
+        # convert the data and labels to NumPy arrays
+        data = np.array(data, dtype="float32")
+        labels = np.array(labels, dtype="int")
+
+        # return a 2-tuple of the A-Z data and labels
+        return (data, labels)
+
+def load_zero_nine_dataset():
+    # load the MNIST dataset and stack the training data and testing
+    # data together (we'll create our own training and testing splits
+    # later in the project)
+    ((trainData, trainLabels), (testData, testLabels)) = mnist.load_data()
+    data = np.vstack([trainData, testData])
+    labels = np.hstack([trainLabels, testLabels])
+    # return a 2-tuple of the MNIST data and labels
+    return (data, labels)
+
+# load all datasets
+(azData, azLabels) = load_az_dataset("az"])
+(digitsData, digitsLabels) = load_zero_nine_dataset()
+
+# the MNIST dataset occupies the labels 0-9, so let's add 10 to every A-Z label to ensure the A-Z characters are not incorrectly labeled as digits
+azLabels += 10
+
+# stack the A-Z data and labels with the MNIST digits data and labels
+data = np.vstack([azData, digitsData])
+labels = np.hstack([azLabels, digitsLabels])
+
+
+model_lc = keras.Sequential([keras.layers.Dense(1000, input_shape=(28, 28, 1), activation='relu'),
+                            keras.layers.Dense(100, activation='sigmoid'),
+                            keras.layers.Dense(10, activation='sigmoid')])
+
+model_lc.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+img_train,img_test,label_train,label_test = train_test_split(data.index,labels,test_size=0.2)
+model_lc.fit(img_train, label_train, epochs=1)
+
+model_lc.evaluate(img_test, label_test)
+
+model_lc.save('CNN_lc_1.model')
+
+y_predicted = model_lc.predict(label_test)
+y_predicted_labels = [np.argmax(i) for i in y_predicted]
+cm = tf.math.confusion_matrix(labels=y_test, predictions=y_predicted_labels)
+
+plt.figure(figsize = (10,7))
+sn.heatmap(cm, annot=True, fmt='d')
+plt.xlabel('Predicted')
+plt.ylabel('Truth')
+plt.show()
