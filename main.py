@@ -13,10 +13,20 @@ from keras.layers import *
 from keras.models import Model
 from keras.callbacks import ReduceLROnPlateau, EarlyStopping
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix
 from sklearn.utils import shuffle
 from tensorflow import keras
 import tensorflow_datasets.public_api as tfds
 from keras.datasets import mnist
+from keras.utils import np_utils
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import plot_confusion_matrix
+from sklearn.metrics import ConfusionMatrixDisplay
+from sklearn.datasets import make_classification
+from sklearn.svm import SVC
+import matplotlib.font_manager as fm
+from matplotlib.collections import QuadMesh
+from pandas import DataFrame
 import argparse
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -24,15 +34,16 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 (X_train_1, Y_train_1), (X_test_1, Y_test_1) = keras.datasets.mnist.load_data()
 data = pd.read_csv("A_Z Handwritten Data.csv").astype('float32')
 
-print(y_train.shape)
+# print(y_train.shape)
 
-print(len(X_train))
-print(len(X_test))
+# print(len(X_train))
+# print(len(X_test))
 
-print(X_train[0].shape)
+# print(X_train[0].shape)
 
-print(X_train[0])
-#plt.show(X_train[0])
+# print(X_train[0])
+# plt.show(X_train[0])
+'''
 y_train[0]
 X_train = X_train / 255
 X_test = X_test / 255
@@ -41,6 +52,7 @@ X_train_flattened = X_train.reshape(len(X_train), 28*28)
 X_test_flattened = X_test.reshape(len(X_test), 28*28)
 X_train_flattened.shape
 X_train_flattened[0]
+'''
 '''
 # simple neural network with no hidden layers
 model_nhl = keras.Sequential([keras.layers.Dense(10, input_shape=(784,), activation='sigmoid')])
@@ -115,7 +127,7 @@ plt.show()
 
 '''
 # letters
-
+'''
 X = data.drop('0',axis = 1)
 y = data['0']
 train_x, test_x, train_y, test_y = train_test_split(X, y, test_size = 0.2)
@@ -155,6 +167,7 @@ train_yOHE = tf.keras.utils.to_categorical(train_y, num_classes = 26, dtype='int
 print("New shape of train labels: ", train_yOHE.shape)
 test_yOHE = tf.keras.utils.to_categorical(test_y, num_classes = 26, dtype='int')
 print("New shape of test labels: ", test_yOHE.shape)
+'''
 '''
 model_l = Sequential()
 model_l.add(Conv2D(filters=32, kernel_size=(3, 3), activation='relu', input_shape=(28,28, 1)))
@@ -379,74 +392,131 @@ plt.show()
 
 # final try
 
-def load_az_dataset(dataset_path):
+def load_az_dataset():
     # initialize the list of data and labels
-    data = []
-    labels = []
+    dataaz = []
+    labelsaz = []
+    data_az = pd.read_csv("A_Z Handwritten Data.csv").astype('float32')
+    data_az.rename(columns={'0': 'label'}, inplace=True)
 
-    # loop over the rows of the A-Z handwritten digit dataset
-    for row in open(dataset_path):
-        # parse the label and image from the row
-        row = row.split(",")
-        label = int(row[0])
-        image = np.array([int(x) for x in row[1:]], dtype="uint8")
+    # Splite data the X - Our data , and y - the prdict label
+    x = data_az.drop('label', axis=1)
+    y = data_az['label']
+    data_az_tr, data_az_ts, labels_az_tr, labels_az_ts = train_test_split(x, y)
 
-        # images are represented as single channel (grayscale) images
-        # that are 28x28=784 pixels -- we need to take this flattened
-        # 784-d list of numbers and reshape them into a 28x28 matrix
-        image = image.reshape((28, 28))
+    standard_scaler = MinMaxScaler()
+    standard_scaler.fit(data_az_tr)
 
-        # update the list of data and labels
-        data.append(image)
-        labels.append(label)
+    data_az_tr = standard_scaler.transform(data_az_tr)
+    data_az_ts = standard_scaler.transform(data_az_ts)
 
-        # convert the data and labels to NumPy arrays
-        data = np.array(data, dtype="float32")
-        labels = np.array(labels, dtype="int")
+    data_az_tr = data_az_tr.reshape(data_az_tr.shape[0], 28, 28, 1).astype('float32')  # zmiana kształtu na 3 wymiary
+    data_az_ts = data_az_ts.reshape(data_az_ts.shape[0], 28, 28, 1).astype('float32')  # zmiana kształtu na 3 wymiary
+    print(labels_az_tr[0])
+    # labels_az_tr = np_utils.to_categorical(labels_az_tr)
+    # labels_az_ts = np_utils.to_categorical(labels_az_ts)
+    print(labels_az_tr[0])
+    labels_az_tr = np.array(labels_az_tr).astype(int)
+    labels_az_ts = np.array(labels_az_ts).astype(int)
+    print(labels_az_tr[0])
+    print(labels_az_tr[1])
+    print(labels_az_tr[2])
+    print(labels_az_tr[3])
+    print(labels_az_tr[0])
 
-        # return a 2-tuple of the A-Z data and labels
-        return (data, labels)
+    # return a 2-tuple of the A-Z data and labels
+    return data_az_tr, labels_az_tr, data_az_ts, labels_az_ts
+
 
 def load_zero_nine_dataset():
     # load the MNIST dataset and stack the training data and testing
     # data together (we'll create our own training and testing splits
     # later in the project)
-    ((trainData, trainLabels), (testData, testLabels)) = mnist.load_data()
-    data = np.vstack([trainData, testData])
-    labels = np.hstack([trainLabels, testLabels])
-    # return a 2-tuple of the MNIST data and labels
-    return (data, labels)
+    ((train_data, train_labels), (test_data, test_labels)) = mnist.load_data()
+    data = np.vstack([train_data, test_data])
+    labels = np.hstack([train_labels, test_labels])
+    print(train_labels[0])
+    train_data = train_data.reshape(train_data.shape[0], 28, 28, 1).astype('float32')
+    test_data = test_data.reshape(test_data.shape[0], 28, 28, 1).astype('float32')
+
+    return train_data, train_labels, test_data, test_labels
+
 
 # load all datasets
-(azData, azLabels) = load_az_dataset("az"])
-(digitsData, digitsLabels) = load_zero_nine_dataset()
+(az_data_tr, az_labels_tr, az_data_ts, az_labels_ts) = load_az_dataset()
+(digits_data_tr, digits_labels_tr, digits_data_ts, digits_labels_ts) = load_zero_nine_dataset()
+
 
 # the MNIST dataset occupies the labels 0-9, so let's add 10 to every A-Z label to ensure the A-Z characters are not incorrectly labeled as digits
-azLabels += 10
+az_labels_tr += 10
+az_labels_ts += 10
 
-# stack the A-Z data and labels with the MNIST digits data and labels
-data = np.vstack([azData, digitsData])
-labels = np.hstack([azLabels, digitsLabels])
+data_tr = np.concatenate((az_data_tr, digits_data_tr), axis=0)
+data_ts = np.concatenate((az_data_ts, digits_data_ts), axis=0)
+labels_tr = np.hstack([az_labels_tr, digits_labels_tr])
+labels_ts = np.hstack([az_labels_ts, digits_labels_ts])
 
+model_lc = Sequential()
+model_lc.add(Conv2D(filters=32, kernel_size=(3, 3), activation='relu', input_shape=(28, 28, 1)))
+model_lc.add(MaxPool2D(pool_size=(2, 2), strides=2))
+model_lc.add(Conv2D(filters=64, kernel_size=(3, 3), activation='relu'))
+model_lc.add(MaxPool2D(pool_size=(2, 2), strides=2))
+model_lc.add(Conv2D(filters=128, kernel_size=(3, 3), activation='relu'))
+model_lc.add(MaxPool2D(pool_size=(2, 2), strides=2))
+model_lc.add(Flatten())
+model_lc.add(Dense(64, activation="relu"))
+model_lc.add(Dense(128, activation="relu"))
+model_lc.add(Dense(36, activation="softmax"))
+# optimizer: adam , sgd , rmsprop, SGD(lr=1e-4, momentum=0.9)
+model_lc.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])  # run_eagerly=True)
 
-model_lc = keras.Sequential([keras.layers.Dense(1000, input_shape=(28, 28, 1), activation='relu'),
-                            keras.layers.Dense(100, activation='sigmoid'),
-                            keras.layers.Dense(10, activation='sigmoid')])
+history = model_lc.fit(data_tr, labels_tr, epochs=25, validation_data=(data_ts, labels_ts), use_multiprocessing=True)
 
-model_lc.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-img_train,img_test,label_train,label_test = train_test_split(data.index,labels,test_size=0.2)
-model_lc.fit(img_train, label_train, epochs=1)
+model_lc.summary()
 
-model_lc.evaluate(img_test, label_test)
+model_lc.evaluate(data_ts, labels_ts, use_multiprocessing=True)
 
-model_lc.save('CNN_lc_1.model')
+model_lc.save('CNN_l_d_2.model')
 
-y_predicted = model_lc.predict(label_test)
+print("The validation accuracy is :", history.history['val_accuracy'])
+print("The training accuracy is :", history.history['accuracy'])
+print("The validation loss is :", history.history['val_loss'])
+print("The training loss is :", history.history['loss'])
+
+# model_lc = tf.keras.models.load_model('CNN_lc_1.model')
+
+y_predicted = model_lc.predict(data_ts, use_multiprocessing=True)
 y_predicted_labels = [np.argmax(i) for i in y_predicted]
-cm = tf.math.confusion_matrix(labels=y_test, predictions=y_predicted_labels)
+cm = tf.math.confusion_matrix(labels=labels_ts, predictions=y_predicted_labels)
+c_m = confusion_matrix(labels_ts, y_predicted_labels,  labels=None, sample_weight=None, normalize='true')
 
-plt.figure(figsize = (10,7))
-sn.heatmap(cm, annot=True, fmt='d')
+names = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
+         'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+
+plt.figure(figsize=(10, 7))
+heat_map = sn.heatmap(c_m, annot=True, fmt='.3f', xticklabels=names, yticklabels=names, cbar=False)
+heat_map.set_yticklabels(heat_map.get_yticklabels(), rotation=35)
+sn.set(font_scale=0.8)
+
 plt.xlabel('Predicted')
 plt.ylabel('Truth')
+plt.show()
+cv2.waitKey(1)
+
+plt.figure(figsize=(10, 5))
+plt.suptitle('CNN_l_d_1.model training ', fontsize=20)
+
+plt.subplot(1, 2, 1)
+plt.xlabel('Epochs', fontsize=8)
+plt.ylabel('Training Loss', fontsize=8)
+plt.plot(history.history['loss'], label='Training Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.legend(loc='upper right')
+
+plt.subplot(1, 2, 2)
+plt.ylabel('Training Accuracy', fontsize=8)
+plt.xlabel('Epochs', fontsize=8)
+plt.plot(history.history['accuracy'], label='Training Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+plt.legend(loc='lower right')
 plt.show()
