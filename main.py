@@ -456,27 +456,29 @@ data_ts = np.concatenate((az_data_ts, digits_data_ts), axis=0)
 labels_tr = np.hstack([az_labels_tr, digits_labels_tr])
 labels_ts = np.hstack([az_labels_ts, digits_labels_ts])
 
-model_lc = Sequential()
-model_lc.add(Conv2D(filters=32, kernel_size=(3, 3), activation='relu', input_shape=(28, 28, 1)))
-model_lc.add(MaxPool2D(pool_size=(2, 2), strides=2))
-model_lc.add(Conv2D(filters=64, kernel_size=(3, 3), activation='relu'))
-model_lc.add(MaxPool2D(pool_size=(2, 2), strides=2))
-model_lc.add(Conv2D(filters=128, kernel_size=(3, 3), activation='relu'))
-model_lc.add(MaxPool2D(pool_size=(2, 2), strides=2))
-model_lc.add(Flatten())
-model_lc.add(Dense(64, activation="relu"))
-model_lc.add(Dense(128, activation="relu"))
-model_lc.add(Dense(36, activation="softmax"))
+
+'''
+model_ld = Sequential()
+model_ld.add(Conv2D(filters=32, kernel_size=(3, 3), activation='relu', input_shape=(28, 28, 1)))
+model_ld.add(MaxPool2D(pool_size=(2, 2), strides=2))
+model_ld.add(Conv2D(filters=64, kernel_size=(3, 3), activation='relu'))
+model_ld.add(MaxPool2D(pool_size=(2, 2), strides=2))
+model_ld.add(Conv2D(filters=128, kernel_size=(3, 3), activation='relu'))
+model_ld.add(MaxPool2D(pool_size=(2, 2), strides=2))
+model_ld.add(Flatten())
+model_ld.add(Dense(64, activation="relu"))
+model_ld.add(Dense(128, activation="relu"))
+model_ld.add(Dense(36, activation="softmax"))
 # optimizer: adam , sgd , rmsprop, SGD(lr=1e-4, momentum=0.9)
-model_lc.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])  # run_eagerly=True)
+model_ld.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])  # run_eagerly=True)
 
-history = model_lc.fit(data_tr, labels_tr, epochs=25, validation_data=(data_ts, labels_ts), use_multiprocessing=True)
+history = model_ld.fit(data_tr, labels_tr, epochs=20, validation_data=(data_ts, labels_ts), use_multiprocessing=True)
 
-model_lc.summary()
+model_ld.summary()
 
-model_lc.evaluate(data_ts, labels_ts, use_multiprocessing=True)
+model_ld.evaluate(data_ts, labels_ts, use_multiprocessing=True)
 
-model_lc.save('CNN_l_d_2.model')
+#model_ld.save('CNN_ld_2.model')
 
 print("The validation accuracy is :", history.history['val_accuracy'])
 print("The training accuracy is :", history.history['accuracy'])
@@ -485,7 +487,7 @@ print("The training loss is :", history.history['loss'])
 
 # model_lc = tf.keras.models.load_model('CNN_lc_1.model')
 
-y_predicted = model_lc.predict(data_ts, use_multiprocessing=True)
+y_predicted = model_ld.predict(data_ts, use_multiprocessing=True)
 y_predicted_labels = [np.argmax(i) for i in y_predicted]
 cm = tf.math.confusion_matrix(labels=labels_ts, predictions=y_predicted_labels)
 c_m = confusion_matrix(labels_ts, y_predicted_labels,  labels=None, sample_weight=None, normalize='true')
@@ -500,11 +502,12 @@ sn.set(font_scale=0.8)
 
 plt.xlabel('Predicted')
 plt.ylabel('Truth')
-plt.show()
-cv2.waitKey(1)
+#plt.show()
+plt.savefig('CNN_ld_1.model training heatmap.png')
+#cv2.waitKey(1)
 
 plt.figure(figsize=(10, 5))
-plt.suptitle('CNN_l_d_1.model training ', fontsize=20)
+plt.suptitle('CNN_ld_1.model training ', fontsize=20)
 
 plt.subplot(1, 2, 1)
 plt.xlabel('Epochs', fontsize=8)
@@ -519,4 +522,115 @@ plt.xlabel('Epochs', fontsize=8)
 plt.plot(history.history['accuracy'], label='Training Accuracy')
 plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
 plt.legend(loc='lower right')
-plt.show()
+#plt.show()
+plt.savefig('CNN_ld_1.model training evaluation.png')
+'''
+
+
+def train_my_model(optm, num, epochs):
+    model_ld = Sequential()
+    model_ld.add(Conv2D(filters=32, kernel_size=(3, 3), activation='relu', input_shape=(28, 28, 1)))
+    model_ld.add(MaxPool2D(pool_size=(2, 2), strides=2))
+    model_ld.add(Conv2D(filters=64, kernel_size=(3, 3), activation='relu'))
+    model_ld.add(MaxPool2D(pool_size=(2, 2), strides=2))
+    model_ld.add(Conv2D(filters=128, kernel_size=(3, 3), activation='relu'))
+    model_ld.add(MaxPool2D(pool_size=(2, 2), strides=2))
+    model_ld.add(Flatten())
+    model_ld.add(Dense(64, activation="relu"))
+    model_ld.add(Dense(128, activation="relu"))
+    model_ld.add(Dense(36, activation="softmax"))
+    # optimizer: adam , sgd , rmsprop, SGD(lr=1e-4, momentum=0.9)
+    callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=3)
+    model_ld.compile(optimizer=optm, loss='sparse_categorical_crossentropy', metrics=['accuracy'], ) # run_eagerly=True)
+
+    history = model_ld.fit(data_tr, labels_tr, epochs=epochs, validation_data=(data_ts, labels_ts), callbacks=[callback],
+                           use_multiprocessing=True)
+
+    model_ld.summary()
+
+    model_ld.evaluate(data_ts, labels_ts, use_multiprocessing=True)
+
+    #model_ld.save('CNN_ld_2.model')
+
+    print("The validation accuracy is :", history.history['val_accuracy'])
+    print("The training accuracy is :", history.history['accuracy'])
+    print("The validation loss is :", history.history['val_loss'])
+    print("The training loss is :", history.history['loss'])
+
+    # model_lc = tf.keras.models.load_model('CNN_lc_1.model')
+
+    y_predicted = model_ld.predict(data_ts, use_multiprocessing=True)
+    y_predicted_labels = [np.argmax(i) for i in y_predicted]
+    cm = tf.math.confusion_matrix(labels=labels_ts, predictions=y_predicted_labels)
+    c_m = confusion_matrix(labels_ts, y_predicted_labels,  labels=None, sample_weight=None, normalize='true')
+
+    names = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
+             'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+
+    plt.figure(figsize=(10, 7))
+    heat_map = sn.heatmap(c_m, annot=True, fmt='.3f', xticklabels=names, yticklabels=names, cbar=False)
+    heat_map.set_yticklabels(heat_map.get_yticklabels(), rotation=35)
+    sn.set(font_scale=0.8)
+    plt.title('CNN_ld_' + str(num) + '.model training ' + optm + ' epochs ' + str(epochs), fontsize=20)
+    plt.xlabel('Predicted')
+    plt.ylabel('Truth')
+    #plt.show()
+    plt.savefig('CNN_ld_' + str(num) + '.model training heatmap ' + optm +  ' epochs ' + str(epochs) + '.png')
+    #cv2.waitKey(1)
+
+    plt.figure(figsize=(10, 5))
+    plt.suptitle('CNN_ld_' + str(num) + '.model training ' + optm + ' epochs ' + str(epochs), fontsize=20)
+
+    plt.subplot(1, 2, 1)
+    plt.xlabel('Epochs', fontsize=8)
+    plt.ylabel('Training Loss', fontsize=8)
+    plt.plot(history.history['loss'], label='Training Loss')
+    plt.plot(history.history['val_loss'], label='Validation Loss')
+    plt.legend(loc='upper right')
+
+    plt.subplot(1, 2, 2)
+    plt.ylabel('Training Accuracy', fontsize=8)
+    plt.xlabel('Epochs', fontsize=8)
+    plt.plot(history.history['accuracy'], label='Training Accuracy')
+    plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+    plt.legend(loc='lower right')
+    #plt.show()
+    plt.savefig('CNN_ld_' + str(num) + '.model training evaluation ' + optm + ' epochs ' + str(epochs) +  '.png')
+
+#train_my_model(optimizer, number for image saving, number of epochs)
+'''
+train_my_model('adam', 1, 20)
+train_my_model('adam', 1, 25)
+train_my_model('adam', 1, 30)
+train_my_model('sgd', 2, 20)
+train_my_model('sgd', 2, 25)
+train_my_model('sgd', 2, 30)
+train_my_model('adadelta', 3, 20)
+train_my_model('adadelta', 3, 30)
+train_my_model('adadelta', 3, 40)
+train_my_model('adadelta', 3, 50)
+train_my_model('adadelta', 3, 60)
+train_my_model('adadelta', 3, 100)
+train_my_model('adagrad', 4, 20)
+train_my_model('adagrad', 4, 25)
+train_my_model('adagrad', 4, 30)
+train_my_model('adamax', 5, 10)
+train_my_model('adamax', 5, 20)
+train_my_model('adamax', 5, 25)
+train_my_model('adamax', 5, 30)
+train_my_model('nadam', 6, 10)
+train_my_model('nadam', 6, 20)
+train_my_model('nadam', 6, 25)
+train_my_model('nadam', 6, 30)
+train_my_model('ftrl', 7, 10)
+train_my_model('ftrl', 7, 20)
+train_my_model('ftrl', 7, 25)
+train_my_model('ftrl', 7, 30)
+'''
+#train_my_model('adamax', 5, 35)
+
+train_my_model('adamax', 5, 40)
+train_my_model('adamax', 5, 45)
+train_my_model('adamax', 5, 50)
+train_my_model('adamax', 5, 55)
+train_my_model('adamax', 5, 60)
