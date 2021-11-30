@@ -172,7 +172,7 @@ def train_my_model(optm, num, epochs):  # train_my_model(optimizer, number for i
     model_ld.compile(optimizer=optm, loss='sparse_categorical_crossentropy', metrics=['accuracy'])  # run_eagerly=True)
 
     history = model_ld.fit(data_tr, labels_tr, epochs=epochs, validation_data=(data_ts, labels_ts), callbacks=[callback]
-                           , use_multiprocessing=True)
+                           , use_multiprocessing=True, workers=16)
 
     model_ld.summary()
 
