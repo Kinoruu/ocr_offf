@@ -37,6 +37,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 (X_train_1, Y_train_1), (X_test_1, Y_test_1) = keras.datasets.mnist.load_data()
 data = pd.read_csv("A_Z Handwritten Data.csv").astype('float32')
 
+
 # final try
 
 
@@ -94,6 +95,25 @@ data_tr = np.concatenate((az_data_tr, digits_data_tr), axis=0)
 data_ts = np.concatenate((az_data_ts, digits_data_ts), axis=0)
 labels_tr = np.hstack([az_labels_tr, digits_labels_tr])
 labels_ts = np.hstack([az_labels_ts, digits_labels_ts])
+
+names = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
+         'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+
+
+def show_number_of_each_element():
+    count = np.zeros(36, dtype='str')
+    for i in labels_tr:
+        count[i] += 1
+    alphabets = []
+    for i in names:
+        alphabets.append(i)
+    fig, ax = plt.subplots(1, 1, figsize=(10, 15))
+    ax.barh(alphabets, count)
+    plt.title("Contents of training input per character: ")
+    plt.xlabel("Number of elements ")
+    plt.ylabel("Characters")
+    plt.grid()
+    plt.savefig('Contents of training input per character before cutting - prounning.png')
 
 
 def train_my_model(optm, num, epochs):  # train_my_model(optimizer, number for image saving, number of epochs)
@@ -170,10 +190,7 @@ def train_my_model(optm, num, epochs):  # train_my_model(optimizer, number for i
     y_predicted = model_ld.predict(data_ts, use_multiprocessing=True)
     y_predicted_labels = [np.argmax(i) for i in y_predicted]
     cm = tf.math.confusion_matrix(labels=labels_ts, predictions=y_predicted_labels)
-    c_m = confusion_matrix(labels_ts, y_predicted_labels,  labels=None, sample_weight=None, normalize='true')
-
-    names = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
-             'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+    c_m = confusion_matrix(labels_ts, y_predicted_labels, labels=None, sample_weight=None, normalize='true')
 
     plt.figure(figsize=(10, 7))
     heat_map = sn.heatmap(c_m, annot=True, fmt='.3f', xticklabels=names, yticklabels=names, cbar=False)
@@ -251,6 +268,7 @@ for i in range (50):
     train_my_model('adamax',5,i+1)
 '''
 
+show_number_of_each_element()
 start = time.time()
 train_my_model('adamax', 5, 50)
 end = time.time()
