@@ -104,9 +104,9 @@ names = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', '
          'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
 
 
-def list_to_np_array_and_reshape(data_tr_cut, labels_tr_cut):
-    data_tr_cut = np.asarray(data_tr_cut, dtype=np.float32)
-    labels_tr_cut = np.asarray(labels_tr_cut, dtype=np.float32)
+def list_to_np_array_and_reshape(data_tr, labels_tr):
+    data_tr_cut = np.asarray(data_tr, dtype=np.float32)
+    labels_tr_cut = np.asarray(labels_tr, dtype=np.int)
     data_tr_cut = data_tr_cut.reshape(data_tr_cut.shape[0], 28, 28, 1).astype('float32')
     return data_tr_cut, labels_tr_cut
 
@@ -135,6 +135,7 @@ def filling_gapes(labels_tr, data_tr, data_tr_cut, labels_tr_cut, range_of_conte
     missing = np.zeros(number_of_classifiers, dtype='int')
     for i in range(number_of_classifiers):
         missing[i] = range_of_contents - count[i]
+    index = 0
     for i in missing:
         if i > 0:
             for j in range(i):
@@ -142,10 +143,11 @@ def filling_gapes(labels_tr, data_tr, data_tr_cut, labels_tr_cut, range_of_conte
                 random.shuffle(c)
                 labels_tr, data_tr = zip(*c)
                 for m, n in zip(labels_tr, data_tr):
-                    if m == j:
+                    if m == index:
                         data_tr_cut_new.append(n)
                         labels_tr_cut_new.append(m)
                         break
+        index += 1
     return data_tr_cut_new, labels_tr_cut_new
 
 
@@ -165,7 +167,7 @@ def show_number_of_each_element(labels):
     plt.savefig('Contents of training input per character after cutting and filling - prounning' + str(count[0]) + '.png')
 
 
-def train_my_model(optm, num, epochs, lsr):  # train_my_model(optimizer, number for image saving, number of epochs,
+def train_my_model(optm, num, epochs, data_tr, labels_tr , lsr='all'):  # train_my_model(optimizer, number for image saving, number of epochs,
     # learning set range)
     '''
     model_ld = Sequential()
@@ -221,7 +223,7 @@ def train_my_model(optm, num, epochs, lsr):  # train_my_model(optimizer, number 
     callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=3)
     model_ld.compile(optimizer=optm, loss='sparse_categorical_crossentropy', metrics=['accuracy'])  # run_eagerly=True)
 
-    history = model_ld.fit(data_tr_cut, labels_tr_cut, epochs=epochs, validation_data=(data_ts, labels_ts), callbacks=[callback]
+    history = model_ld.fit(data_tr, labels_tr, epochs=epochs, validation_data=(data_ts, labels_ts), callbacks=[callback]
                            , use_multiprocessing=True)
 
     model_ld.summary()
@@ -242,20 +244,46 @@ def train_my_model(optm, num, epochs, lsr):  # train_my_model(optimizer, number 
     cm = tf.math.confusion_matrix(labels=labels_ts, predictions=y_predicted_labels)
     c_m = confusion_matrix(labels_ts, y_predicted_labels, labels=None, sample_weight=None, normalize='true')
 
-    plt.figure(figsize=(10, 7))
+    # heatmap with values
+    plt.figure(figsize=(24, 16))
     heat_map = sn.heatmap(c_m, annot=True, fmt='.3f', xticklabels=names, yticklabels=names, cbar=False)
     heat_map.set_yticklabels(heat_map.get_yticklabels(), rotation=35)
     sn.set(font_scale=0.8)
     plt.title('CNN_ld_' + str(num) + '.model training ' + optm + ' epochs ' + str(epochs) +
-              'test of LeNet-5 based neural network v2 and set range ' + str(lsr) + ' without filling', fontsize=18)
+              ' test of LeNet-5 based neural network v2 and set range ' + str(lsr) + ' without filling', fontsize=18)
     plt.xlabel('Predicted')
     plt.ylabel('Truth')
-    # plt.show()
-    plt.savefig('CNN_ld_' + str(num) + '.model training heatmap ' + optm + ' epochs ' + str(epochs) +
-                'test of LeNet-5 based neural network v2 and set range ' + str(lsr) + ' without filling.png')
-    # cv2.waitKey(1)
+    plt.savefig('pres - CNN_ld_' + str(num) + '.model training heatmap ' + optm + ' epochs ' + str(epochs) +
+                ' test of LeNet-5 based neural network v2 and set range ' + str(lsr) + ' without filling.png')
 
-    plt.figure(figsize=(10, 5))
+    # heatmap with values and lines
+    plt.figure(figsize=(24, 16))
+    heat_map = sn.heatmap(c_m, annot=True, fmt='.3f', xticklabels=names, yticklabels=names, cbar=False, linewidths=0.01,
+                          linecolor='white')
+    heat_map.set_yticklabels(heat_map.get_yticklabels(), rotation=35)
+    sn.set(font_scale=0.8)
+    plt.title('CNN_ld_' + str(num) + '.model training ' + optm + ' epochs ' + str(epochs) +
+              ' test of LeNet-5 based neural network v2 and set range ' + str(lsr) + ' without filling', fontsize=18)
+    plt.xlabel('Predicted')
+    plt.ylabel('Truth')
+    plt.savefig('pres_l - CNN_ld_' + str(num) + '.model training heatmap ' + optm + ' epochs ' + str(epochs) +
+                ' test of LeNet-5 based neural network v2 and set range ' + str(lsr) + ' without filling.png')
+
+    # heatmap without values
+    plt.figure(figsize=(24, 16))
+    heat_map = sn.heatmap(c_m, fmt='', xticklabels=names, yticklabels=names, cbar=False, linewidths=0.01,
+                          linecolor='white')
+    heat_map.set_yticklabels(heat_map.get_yticklabels(), rotation=35)
+    sn.set(font_scale=0.8)
+    plt.title('CNN_ld_' + str(num) + '.model training ' + optm + ' epochs ' + str(epochs) +
+              ' test of LeNet-5 based neural network v2 and set range ' + str(lsr) + ' without filling', fontsize=18)
+    plt.xlabel('Predicted')
+    plt.ylabel('Truth')
+    plt.savefig('pres - CNN_ld_' + str(num) + '.model training heatmap without values ' + optm + ' epochs ' + str(epochs) +
+                ' test of LeNet-5 based neural network v2 and set range ' + str(lsr) + ' without filling.png')
+
+    # double plot showing learning process
+    plt.figure(figsize=(20, 10))
     plt.suptitle('CNN_ld_' + str(num) + '.model training ' + optm + ' epochs ' + str(epochs) +
                  'test of LeNet-5 based neural network v2 and set range ' + str(lsr) + ' without filling', fontsize=18)
 
@@ -273,7 +301,7 @@ def train_my_model(optm, num, epochs, lsr):  # train_my_model(optimizer, number 
     plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
     plt.legend(loc='lower right')
     # plt.show()
-    plt.savefig('CNN_ld_' + str(num) + '.model training evaluation ' + optm + ' epochs ' + str(epochs) +
+    plt.savefig('pres - CNN_ld_' + str(num) + '.model training evaluation ' + optm + ' epochs ' + str(epochs) +
                 'test of LeNet-5 based neural network v2 and set range ' + str(lsr) + 'without filling.png')
 
 
@@ -317,16 +345,14 @@ train_my_model('ftrl', 7, 30)
 for i in range (50):
     train_my_model('adamax',5,i+1)
 '''
-sets = [10000]
-for i in sets:
-    (data_tr_cut, labels_tr_cut) = cut_contents_of_each_element(labels_tr, data_tr, i)
-    (data_tr_cut, labels_tr_cut) = list_to_np_array_and_reshape(data_tr_cut, labels_tr_cut)
-    (data_tr_cut, labels_tr_cut) = filling_gapes(labels_tr, data_tr, data_tr_cut, labels_tr_cut, i)
-    (data_tr_cut, labels_tr_cut) = list_to_np_array_and_reshape(data_tr_cut, labels_tr_cut)
-    show_number_of_each_element(labels_tr_cut)
-    '''
-    start = time.time()
-    train_my_model('adamax', 5, 50, i)
-    end = time.time()
-    print('Time of model learning: ' + str(end - start))
-    '''
+# sets = [900, 1000, 2000, 5000, 10000]
+# for i in sets:
+    #(data_tr_cut, labels_tr_cut) = cut_contents_of_each_element(labels_tr, data_tr, i)
+    #(data_tr_cut, labels_tr_cut) = list_to_np_array_and_reshape(data_tr_cut, labels_tr_cut)
+    #(data_tr_cut, labels_tr_cut) = filling_gapes(labels_tr, data_tr, data_tr_cut, labels_tr_cut, i)
+    #(data_tr_cut, labels_tr_cut) = list_to_np_array_and_reshape(data_tr_cut, labels_tr_cut)
+    #show_number_of_each_element(labels_tr_cut)
+start = time.time()
+train_my_model('adamax', 5, 50, data_tr, labels_tr)  # i)
+end = time.time()
+print('Time of model learning: ' + str(end - start))
